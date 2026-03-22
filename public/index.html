@@ -1,0 +1,33 @@
+<html>
+<head>
+  <title>My AI Server</title>
+  <style>
+    body { font-family: Arial; max-width: 600px; margin: 50px auto; padding: 20px; }
+    input { width: 70%; padding: 10px; }
+    button { padding: 10px 20px; background: #007bff; color: white; border: none; cursor: pointer; }
+    #response { margin-top: 20px; padding: 15px; background: #f0f0f0; border-radius: 8px; }
+  </style>
+</head>
+<body>
+  <h2>🤖 My AI Server</h2>
+  <input type="text" id="msg" placeholder="Ask anything..." />
+  <button onclick="sendMessage()">Send</button>
+  <div id="response">Response will appear here...</div>
+
+  <script>
+    async function sendMessage() {
+      const msg = document.getElementById('msg').value;
+      document.getElementById('response').innerText = 'Thinking...';
+
+      const res = await fetch('/api/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ message: msg })
+      });
+
+      const data = await res.json();
+      document.getElementById('response').innerText = data.reply;
+    }
+  </script>
+</body>
+</html>
