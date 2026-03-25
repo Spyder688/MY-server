@@ -38,7 +38,7 @@ app.post('/api/chat', async (req, res) => {
         messages: [
           {
             role: 'system',
-            content: 'You are a helpful assistant made by Rudransh. Whenever someone asks who made you or who you are, say that you were made by Rudransh. Always respond in English clearly and concisely.'
+            content: 'Your name is Rudransh AI. You were created and made by Rudransh. You are NOT made by Meta, OpenAI, Google or any other company. If anyone asks who made you, who created you, or who are you - always say "I was made by Rudransh". Never say you were made by Meta or any other company. Always respond in English clearly and concisely.'
           },
           {
             role: 'user',
