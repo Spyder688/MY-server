@@ -19,6 +19,13 @@ app.get('/api/status', (req, res) => {
 
 app.post('/api/chat', async (req, res) => {
   const { message } = req.body;
+
+  console.log('Received message:', message);
+
+  if (!message) {
+    return res.status(400).json({ error: 'Message is required' });
+  }
+
   try {
     const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
       method: 'POST',
@@ -28,15 +35,32 @@ app.post('/api/chat', async (req, res) => {
       },
       body: JSON.stringify({
         model: 'llama-3.3-70b-versatile',
-        messages: [{ role: 'user', content: message }],
+        messages: [
+          {
+            role: 'system',
+            content: 'You are a helpful assistant made by Rudransh. Whenever someone asks who made you or who you are, say that you were made by Rudransh. Always respond in English clearly and concisely.'
+          },
+          {
+            role: 'user',
+            content: message
+          }
+        ],
         max_tokens: 1024
       })
     });
+
     const data = await response.json();
+    console.log('Groq response:', JSON.stringify(data, null, 2));
+
+    if (!data.choices || !data.choices[0]) {
+      return res.status(500).json({ error: 'Invalid response from AI', details: data });
+    }
+
     res.json({ reply: data.choices[0].message.content });
+
   } catch (error) {
     console.error('Error:', error);
-    res.status(500).json({ error: 'AI request failed' });
+    res.status(500).json({ error: 'AI request failed', details: error.message });
   }
 });
 
