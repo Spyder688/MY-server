@@ -2,6 +2,9 @@ const express = require('express');
 const cors = require('cors');
 require('dotenv').config();
 
+// If you are using Node < 18, uncomment below:
+// const fetch = require('node-fetch');
+
 const app = express();
 const PORT = process.env.PORT || 4000;
 
@@ -9,14 +12,17 @@ app.use(cors());
 app.use(express.json());
 app.use(express.static('public'));
 
+// Home route
 app.get('/', (req, res) => {
   res.sendFile(__dirname + '/public/index.html');
 });
 
+// Status route
 app.get('/api/status', (req, res) => {
   res.json({ status: 'Server is running!', time: new Date() });
 });
 
+// Chat route
 app.post('/api/chat', async (req, res) => {
   const { message } = req.body;
 
@@ -24,6 +30,21 @@ app.post('/api/chat', async (req, res) => {
 
   if (!message) {
     return res.status(400).json({ error: 'Message is required' });
+  }
+
+  // 🔥 FORCE custom reply (100% control)
+  const lowerMsg = message.toLowerCase();
+
+  const triggerWords = [
+    'who made you',
+    'who created you',
+    'your creator',
+    'who is your creator',
+    'who built you'
+  ];
+
+  if (triggerWords.some(word => lowerMsg.includes(word))) {
+    return res.json({ reply: "I am made by Rudransh." });
   }
 
   try {
@@ -38,7 +59,12 @@ app.post('/api/chat', async (req, res) => {
         messages: [
           {
             role: 'system',
-            content: 'Your name is Jarvis . You are created and made by Rudransh. You are NOT made by Meta, OpenAI, Google or any other company. If anyone asks who made you, who created you, or who are you - always say "I am made by Rudransh ". Never say you were made by Meta or any other company.'
+            content: `Your name is Jarvis. You are made by Rudransh.
+
+IMPORTANT RULE:
+If anyone asks who made you or who created you,
+you MUST reply ONLY: "I am made by Rudransh."
+Do not mention any company.`
           },
           {
             role: 'user',
@@ -60,10 +86,11 @@ app.post('/api/chat', async (req, res) => {
 
   } catch (error) {
     console.error('Error:', error);
-    res.status(500).json({ error: 'AI request failed', details: error.message });
+    res.status(500).json({ error: 'Something went wrong', details: error.message });
   }
 });
 
-app.listen(PORT, '0.0.0.0', () => {
-  console.log(`Server running at http://localhost:${PORT}`);
+// Start server
+app.listen(PORT, () => {
+  console.log(`🚀 Server running on http://localhost:${PORT}`);
 });
