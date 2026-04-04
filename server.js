@@ -6,7 +6,7 @@ const app = express();
 const PORT = process.env.PORT || 4000;
  
 app.use(cors());
-app.use(express.json({ limit: '20mb' })); // Increased limit for base64 images
+app.use(express.json({ limit: '20mb' }));
 app.use(express.static('public'));
  
 app.get('/', (req, res) => {
@@ -16,6 +16,26 @@ app.get('/', (req, res) => {
 app.get('/api/status', (req, res) => {
   res.json({ status: 'Server is running!', time: new Date() });
 });
+ 
+// Helper: upload base64 image to imgbb, return public URL
+async function uploadToImgbb(base64, mimeType) {
+  const formData = new URLSearchParams();
+  formData.append('key', process.env.IMGBB_API_KEY);
+  formData.append('image', base64);
+ 
+  const response = await fetch('https://api.imgbb.com/1/upload', {
+    method: 'POST',
+    body: formData
+  });
+ 
+  const data = await response.json();
+ 
+  if (!data.success) {
+    throw new Error('Image upload to imgbb failed: ' + JSON.stringify(data));
+  }
+ 
+  return data.data.url; // public image URL
+}
  
 app.post('/api/chat', async (req, res) => {
   const { message, images } = req.body;
@@ -35,17 +55,21 @@ app.post('/api/chat', async (req, res) => {
   }
  
   try {
-    // Build message content — supports text + images
     let userContent;
  
     if (images && images.length > 0) {
-      // Vision request: use llama-3.2-11b-vision-preview
+      // Upload each image to imgbb to get a public URL
+      console.log('Uploading images to imgbb...');
+      const imageUrls = await Promise.all(
+        images.map(img => uploadToImgbb(img.base64, img.mimeType))
+      );
+      console.log('Image URLs:', imageUrls);
+ 
+      // Build vision message: images first, then text
       userContent = [
-        ...images.map(img => ({
+        ...imageUrls.map(url => ({
           type: 'image_url',
-          image_url: {
-            url: `data:${img.mimeType};base64,${img.base64}`
-          }
+          image_url: { url }
         })),
         {
           type: 'text',
@@ -53,13 +77,14 @@ app.post('/api/chat', async (req, res) => {
         }
       ];
     } else {
-      // Text-only
       userContent = message;
     }
  
     const model = (images && images.length > 0)
-      ? 'llama-3.2-11b-vision-preview'  // Vision model for images
-      : 'llama-3.3-70b-versatile';       // Fast text model
+      ? 'llama-3.2-11b-vision-preview'
+      : 'llama-3.3-70b-versatile';
+ 
+    console.log('Using model:', model);
  
     const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
       method: 'POST',
@@ -103,4 +128,3 @@ you MUST reply ONLY: "I am made by Rudransh." Do not mention any company.`
 app.listen(PORT, () => {
   console.log(`🚀 Server running on http://localhost:${PORT}`);
 });
- 
